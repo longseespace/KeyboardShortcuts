@@ -55,7 +55,7 @@ struct SettingsScreen: View {
 
 `KeyboardShortcuts.Recorder` takes care of storing the keyboard shortcut in `UserDefaults` and also warning the user if the chosen keyboard shortcut is already used by the system or the app's main menu.
 
-If you only need to record shortcuts for use inside your app (without registering a global hotkey or showing system conflict alerts), pass `mode: .local` to `Recorder`/`RecorderCocoa`. The shortcut is still stored and retrievable via `KeyboardShortcuts.getShortcut(for:)`.
+If you only need to record shortcuts for use inside your app (without registering a global hotkey or showing system conflict alerts), pass `mode: .local` to `Recorder`/`RecorderCocoa`. The shortcut is still stored and retrievable via `KeyboardShortcuts.getShortcut(for:mode:)`; write with `setShortcut(_:for:mode:)` to persist to the local scope.
 
 Add a listener for when the user presses their chosen keyboard shortcut.
 

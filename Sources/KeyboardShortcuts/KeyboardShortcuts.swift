@@ -240,21 +240,23 @@ public enum KeyboardShortcuts {
 	/**
 	Disable the keyboard shortcut for one or more names.
 	*/
-	public static func disable(_ names: [Name]) {
+	public static func disable(_ names: [Name], mode: RecorderMode = .global) {
 		for name in names {
-			guard let shortcut = getShortcut(for: name) else {
+			guard let shortcut = getShortcut(for: name, mode: mode) else {
 				continue
 			}
 
-			unregister(shortcut)
+			if mode == .global {
+				unregister(shortcut)
+			}
 		}
 	}
 
 	/**
 	Disable the keyboard shortcut for one or more names.
 	*/
-	public static func disable(_ names: Name...) {
-		disable(names)
+	public static func disable(_ names: Name..., mode: RecorderMode = .global) {
+		disable(names, mode: mode)
 	}
 
 	/**
@@ -363,28 +365,38 @@ public enum KeyboardShortcuts {
 
 	You would usually not need this as the user would be the one setting the shortcut in a settings user-interface, but it can be useful when, for example, migrating from a different keyboard shortcuts package.
 	*/
-	public static func setShortcut(_ shortcut: Shortcut?, for name: Name) {
-		setShortcut(shortcut, for: name, registration: .register)
+	public static func setShortcut(_ shortcut: Shortcut?, for name: Name, mode: RecorderMode = .global) {
+		let registration = registrationBehavior(for: mode)
+		setShortcut(shortcut, for: name, registration: registration, mode: mode)
 	}
 
-	static func setShortcut(_ shortcut: Shortcut?, for name: Name, registration: RegistrationBehavior) {
+	static func setShortcut(_ shortcut: Shortcut?, for name: Name, registration: RegistrationBehavior, mode: RecorderMode = .global) {
 		if let shortcut {
-			userDefaultsSet(name: name, shortcut: shortcut, registration: registration)
+			userDefaultsSet(name: name, shortcut: shortcut, registration: registration, mode: mode)
 		} else {
 			if name.defaultShortcut != nil {
-				userDefaultsDisable(name: name)
+				userDefaultsDisable(name: name, mode: mode)
 			} else {
-				userDefaultsRemove(name: name)
+				userDefaultsRemove(name: name, mode: mode)
 			}
+		}
+	}
+
+	private static func registrationBehavior(for mode: RecorderMode) -> RegistrationBehavior {
+		switch mode {
+		case .global:
+			return .register
+		case .local:
+			return .persistOnly
 		}
 	}
 
 	/**
 	Get the keyboard shortcut for a name.
 	*/
-	public static func getShortcut(for name: Name) -> Shortcut? {
+	public static func getShortcut(for name: Name, mode: RecorderMode = .global) -> Shortcut? {
 		guard
-			let data = UserDefaults.standard.string(forKey: userDefaultsKey(for: name))?.data(using: .utf8),
+			let data = UserDefaults.standard.string(forKey: userDefaultsKey(for: name, mode: mode))?.data(using: .utf8),
 			let decoded = try? JSONDecoder().decode(Shortcut.self, from: data)
 		else {
 			return nil
@@ -502,8 +514,15 @@ public enum KeyboardShortcuts {
 	}
 
 	private static let userDefaultsPrefix = "KeyboardShortcuts_"
+	private static let userDefaultsPrefixLocal = "KeyboardShortcuts_local_"
 
-	private static func userDefaultsKey(for shortcutName: Name) -> String { "\(userDefaultsPrefix)\(shortcutName.rawValue)"
+	private static func userDefaultsKey(for shortcutName: Name, mode: RecorderMode = .global) -> String {
+		switch mode {
+		case .global:
+			return "\(userDefaultsPrefix)\(shortcutName.rawValue)"
+		case .local:
+			return "\(userDefaultsPrefixLocal)\(shortcutName.rawValue)"
+		}
 	}
 
 	static func userDefaultsDidChange(name: Name) {
@@ -511,44 +530,48 @@ public enum KeyboardShortcuts {
 		NotificationCenter.default.post(name: .shortcutByNameDidChange, object: nil, userInfo: ["name": name])
 	}
 
-	static func userDefaultsSet(name: Name, shortcut: Shortcut, registration: RegistrationBehavior) {
+	static func userDefaultsSet(name: Name, shortcut: Shortcut, registration: RegistrationBehavior, mode: RecorderMode) {
 		guard let encoded = try? JSONEncoder().encode(shortcut).toString else {
 			return
 		}
 
-		if let oldShortcut = getShortcut(for: name) {
+		if mode == .global, let oldShortcut = getShortcut(for: name, mode: mode) {
 			unregister(oldShortcut)
 		}
 
 		if registration == .register {
 			register(shortcut)
 		}
-		UserDefaults.standard.set(encoded, forKey: userDefaultsKey(for: name))
+		UserDefaults.standard.set(encoded, forKey: userDefaultsKey(for: name, mode: mode))
 		userDefaultsDidChange(name: name)
 	}
 
-	static func userDefaultsDisable(name: Name) {
-		guard let shortcut = getShortcut(for: name) else {
+	static func userDefaultsDisable(name: Name, mode: RecorderMode) {
+		guard let shortcut = getShortcut(for: name, mode: mode) else {
 			return
 		}
 
-		UserDefaults.standard.set(false, forKey: userDefaultsKey(for: name))
-		unregister(shortcut)
+		UserDefaults.standard.set(false, forKey: userDefaultsKey(for: name, mode: mode))
+		if mode == .global {
+			unregister(shortcut)
+		}
 		userDefaultsDidChange(name: name)
 	}
 
-	static func userDefaultsRemove(name: Name) {
-		guard let shortcut = getShortcut(for: name) else {
+	static func userDefaultsRemove(name: Name, mode: RecorderMode) {
+		guard let shortcut = getShortcut(for: name, mode: mode) else {
 			return
 		}
 
-		UserDefaults.standard.removeObject(forKey: userDefaultsKey(for: name))
-		unregister(shortcut)
+		UserDefaults.standard.removeObject(forKey: userDefaultsKey(for: name, mode: mode))
+		if mode == .global {
+			unregister(shortcut)
+		}
 		userDefaultsDidChange(name: name)
 	}
 
-	static func userDefaultsContains(name: Name) -> Bool {
-		UserDefaults.standard.object(forKey: userDefaultsKey(for: name)) != nil
+	static func userDefaultsContains(name: Name, mode: RecorderMode = .global) -> Bool {
+		UserDefaults.standard.object(forKey: userDefaultsKey(for: name, mode: mode)) != nil
 	}
 }
 

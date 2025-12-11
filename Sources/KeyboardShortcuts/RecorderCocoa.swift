@@ -126,7 +126,7 @@ extension KeyboardShortcuts {
 		}
 
 		private func setStringValue(name: KeyboardShortcuts.Name) {
-			stringValue = getShortcut(for: shortcutName).map { "\($0)" } ?? ""
+			stringValue = getShortcut(for: shortcutName, mode: mode).map { "\($0)" } ?? ""
 
 			// If `stringValue` is empty, hide the cancel button to let the placeholder center.
 			showsCancelButton = !stringValue.isEmpty
@@ -354,7 +354,7 @@ extension KeyboardShortcuts {
 		}
 
 		private func saveShortcut(_ shortcut: Shortcut?) {
-			KeyboardShortcuts.setShortcut(shortcut, for: shortcutName, registration: registrationBehavior)
+			KeyboardShortcuts.setShortcut(shortcut, for: shortcutName, registration: registrationBehavior, mode: mode)
 			onChange?(shortcut)
 		}
 	}

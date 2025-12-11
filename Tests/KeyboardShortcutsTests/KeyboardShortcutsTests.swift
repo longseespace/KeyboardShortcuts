@@ -249,13 +249,32 @@ struct KeyboardShortcutsTests {
 		let name = KeyboardShortcuts.Name("localModeTest")
 		let shortcut = KeyboardShortcuts.Shortcut(.a, modifiers: [.command])
 
-		KeyboardShortcuts.setShortcut(shortcut, for: name, registration: .persistOnly)
+		KeyboardShortcuts.setShortcut(shortcut, for: name, mode: .local)
 
-		#expect(KeyboardShortcuts.getShortcut(for: name) == shortcut)
+		#expect(KeyboardShortcuts.getShortcut(for: name, mode: .local) == shortcut)
+		#expect(KeyboardShortcuts.getShortcut(for: name) == nil)
 		#expect(KeyboardShortcuts.isEnabled(for: name) == false)
 
-		KeyboardShortcuts.setShortcut(nil, for: name)
-		#expect(KeyboardShortcuts.getShortcut(for: name) == nil)
+		KeyboardShortcuts.setShortcut(nil, for: name, mode: .local)
+		#expect(KeyboardShortcuts.getShortcut(for: name, mode: .local) == nil)
+	}
+
+	@Test("Per-mode storage separation")
+	func testPerModeStorageSeparation() throws {
+		let name = KeyboardShortcuts.Name("modeSeparated")
+		let globalShortcut = KeyboardShortcuts.Shortcut(.b, modifiers: [.command])
+		let localShortcut = KeyboardShortcuts.Shortcut(.c, modifiers: [.option])
+
+		KeyboardShortcuts.setShortcut(globalShortcut, for: name)
+		KeyboardShortcuts.setShortcut(localShortcut, for: name, mode: .local)
+
+		#expect(KeyboardShortcuts.getShortcut(for: name) == globalShortcut)
+		#expect(KeyboardShortcuts.getShortcut(for: name, mode: .local) == localShortcut)
+		#expect(KeyboardShortcuts.isEnabled(for: name))
+
+		KeyboardShortcuts.setShortcut(nil, for: name, mode: .local)
+		#expect(KeyboardShortcuts.getShortcut(for: name) == globalShortcut)
+		#expect(KeyboardShortcuts.getShortcut(for: name, mode: .local) == nil)
 	}
 }
 
@@ -322,10 +341,10 @@ struct ModifierSymbolTests {
 
 // MARK: - UserDefaults Extension for Testing
 
-extension UserDefaults {
+	extension UserDefaults {
 	func removeAllKeyboardShortcuts() {
 		dictionaryRepresentation().keys.forEach { key in
-			if key.hasPrefix("KeyboardShortcuts_") {
+			if key.hasPrefix("KeyboardShortcuts_") || key.hasPrefix("KeyboardShortcuts_local_") {
 				removeObject(forKey: key)
 			}
 		}
