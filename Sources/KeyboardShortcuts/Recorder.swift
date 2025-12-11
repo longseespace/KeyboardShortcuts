@@ -7,13 +7,15 @@ extension KeyboardShortcuts {
 
 		let name: Name
 		let onChange: ((_ shortcut: Shortcut?) -> Void)?
+		let mode: RecorderMode
 
 		func makeNSView(context: Context) -> NSViewType {
-			.init(for: name, onChange: onChange)
+			.init(for: name, onChange: onChange, mode: mode)
 		}
 
 		func updateNSView(_ nsView: NSViewType, context: Context) {
 			nsView.shortcutName = name
+			nsView.mode = mode
 		}
 	}
 
@@ -46,17 +48,20 @@ extension KeyboardShortcuts {
 		private let onChange: ((Shortcut?) -> Void)?
 		private let hasLabel: Bool
 		private let label: Label
+		private let mode: RecorderMode
 
 		init(
 			for name: Name,
 			onChange: ((Shortcut?) -> Void)? = nil,
 			hasLabel: Bool,
+			mode: RecorderMode,
 			@ViewBuilder label: () -> Label
 		) {
 			self.name = name
 			self.onChange = onChange
 			self.hasLabel = hasLabel
 			self.label = label()
+			self.mode = mode
 		}
 
 		public var body: some View {
@@ -65,7 +70,8 @@ extension KeyboardShortcuts {
 					LabeledContent {
 						_Recorder(
 							name: name,
-							onChange: onChange
+							onChange: onChange,
+							mode: mode
 						)
 					} label: {
 						label
@@ -73,7 +79,8 @@ extension KeyboardShortcuts {
 				} else {
 					_Recorder(
 						name: name,
-						onChange: onChange
+						onChange: onChange,
+						mode: mode
 					)
 						.formLabel {
 							label
@@ -82,7 +89,8 @@ extension KeyboardShortcuts {
 			} else {
 				_Recorder(
 					name: name,
-					onChange: onChange
+					onChange: onChange,
+					mode: mode
 				)
 			}
 		}
@@ -93,15 +101,18 @@ extension KeyboardShortcuts.Recorder<EmptyView> {
 	/**
 	- Parameter name: Strongly-typed keyboard shortcut name.
 	- Parameter onChange: Callback which will be called when the keyboard shortcut is changed/removed by the user. This can be useful when you need more control. For example, when migrating from a different keyboard shortcut solution and you need to store the keyboard shortcut somewhere yourself instead of relying on the built-in storage. However, it's strongly recommended to just rely on the built-in storage when possible.
+	- Parameter mode: Choose between global hotkey registration (`.global`, default) or local recording only (`.local`).
 	*/
 	public init(
 		for name: KeyboardShortcuts.Name,
-		onChange: ((KeyboardShortcuts.Shortcut?) -> Void)? = nil
+		onChange: ((KeyboardShortcuts.Shortcut?) -> Void)? = nil,
+		mode: KeyboardShortcuts.RecorderMode = .global
 	) {
 		self.init(
 			for: name,
 			onChange: onChange,
-			hasLabel: false
+			hasLabel: false,
+			mode: mode
 		) {}
 	}
 }
@@ -111,16 +122,19 @@ extension KeyboardShortcuts.Recorder<Text> {
 	- Parameter title: The title of the keyboard shortcut recorder, describing its purpose.
 	- Parameter name: Strongly-typed keyboard shortcut name.
 	- Parameter onChange: Callback which will be called when the keyboard shortcut is changed/removed by the user. This can be useful when you need more control. For example, when migrating from a different keyboard shortcut solution and you need to store the keyboard shortcut somewhere yourself instead of relying on the built-in storage. However, it's strongly recommended to just rely on the built-in storage when possible.
+	- Parameter mode: Choose between global hotkey registration (`.global`, default) or local recording only (`.local`).
 	*/
 	public init(
 		_ title: LocalizedStringKey,
 		name: KeyboardShortcuts.Name,
-		onChange: ((KeyboardShortcuts.Shortcut?) -> Void)? = nil
+		onChange: ((KeyboardShortcuts.Shortcut?) -> Void)? = nil,
+		mode: KeyboardShortcuts.RecorderMode = .global
 	) {
 		self.init(
 			for: name,
 			onChange: onChange,
-			hasLabel: true
+			hasLabel: true,
+			mode: mode
 		) {
 			Text(title)
 		}
@@ -132,17 +146,20 @@ extension KeyboardShortcuts.Recorder<Text> {
 	- Parameter title: The title of the keyboard shortcut recorder, describing its purpose.
 	- Parameter name: Strongly-typed keyboard shortcut name.
 	- Parameter onChange: Callback which will be called when the keyboard shortcut is changed/removed by the user. This can be useful when you need more control. For example, when migrating from a different keyboard shortcut solution and you need to store the keyboard shortcut somewhere yourself instead of relying on the built-in storage. However, it's strongly recommended to just rely on the built-in storage when possible.
+	- Parameter mode: Choose between global hotkey registration (`.global`, default) or local recording only (`.local`).
 	*/
 	@_disfavoredOverload
 	public init(
 		_ title: String,
 		name: KeyboardShortcuts.Name,
-		onChange: ((KeyboardShortcuts.Shortcut?) -> Void)? = nil
+		onChange: ((KeyboardShortcuts.Shortcut?) -> Void)? = nil,
+		mode: KeyboardShortcuts.RecorderMode = .global
 	) {
 		self.init(
 			for: name,
 			onChange: onChange,
-			hasLabel: true
+			hasLabel: true,
+			mode: mode
 		) {
 			Text(title)
 		}
@@ -154,16 +171,19 @@ extension KeyboardShortcuts.Recorder {
 	- Parameter name: Strongly-typed keyboard shortcut name.
 	- Parameter onChange: Callback which will be called when the keyboard shortcut is changed/removed by the user. This can be useful when you need more control. For example, when migrating from a different keyboard shortcut solution and you need to store the keyboard shortcut somewhere yourself instead of relying on the built-in storage. However, it's strongly recommended to just rely on the built-in storage when possible.
 	- Parameter label: A view that describes the purpose of the keyboard shortcut recorder.
+	- Parameter mode: Choose between global hotkey registration (`.global`, default) or local recording only (`.local`).
 	*/
 	public init(
 		for name: KeyboardShortcuts.Name,
 		onChange: ((KeyboardShortcuts.Shortcut?) -> Void)? = nil,
+		mode: KeyboardShortcuts.RecorderMode = .global,
 		@ViewBuilder label: () -> Label
 	) {
 		self.init(
 			for: name,
 			onChange: onChange,
 			hasLabel: true,
+			mode: mode,
 			label: label
 		)
 	}

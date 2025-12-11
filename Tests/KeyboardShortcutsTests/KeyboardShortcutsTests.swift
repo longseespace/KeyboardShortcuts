@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 import AppKit
-import KeyboardShortcuts
+@testable import KeyboardShortcuts
 
 @Suite("KeyboardShortcuts Tests", .serialized)
 struct KeyboardShortcutsTests {
@@ -242,6 +242,20 @@ struct KeyboardShortcutsTests {
 		#expect(KeyboardShortcuts.getShortcut(for: name1) == .init(.a))
 		#expect(KeyboardShortcuts.getShortcut(for: name2) == .init(.b))
 		#expect(KeyboardShortcuts.getShortcut(for: name3) == nil)
+	}
+
+	@Test("Local mode persists without registering")
+	func testLocalModePersistsWithoutRegistering() throws {
+		let name = KeyboardShortcuts.Name("localModeTest")
+		let shortcut = KeyboardShortcuts.Shortcut(.a, modifiers: [.command])
+
+		KeyboardShortcuts.setShortcut(shortcut, for: name, registration: .persistOnly)
+
+		#expect(KeyboardShortcuts.getShortcut(for: name) == shortcut)
+		#expect(KeyboardShortcuts.isEnabled(for: name) == false)
+
+		KeyboardShortcuts.setShortcut(nil, for: name)
+		#expect(KeyboardShortcuts.getShortcut(for: name) == nil)
 	}
 }
 

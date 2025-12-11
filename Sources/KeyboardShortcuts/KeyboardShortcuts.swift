@@ -5,6 +5,16 @@ import AppKit.NSMenu
 Global keyboard shortcuts for your macOS app.
 */
 public enum KeyboardShortcuts {
+	public enum RecorderMode {
+		case global
+		case local
+	}
+
+	enum RegistrationBehavior {
+		case register
+		case persistOnly
+	}
+
 	private static var registeredShortcuts = Set<Shortcut>()
 
 	private static var legacyKeyDownHandlers = [Name: [() -> Void]]()
@@ -354,8 +364,12 @@ public enum KeyboardShortcuts {
 	You would usually not need this as the user would be the one setting the shortcut in a settings user-interface, but it can be useful when, for example, migrating from a different keyboard shortcuts package.
 	*/
 	public static func setShortcut(_ shortcut: Shortcut?, for name: Name) {
+		setShortcut(shortcut, for: name, registration: .register)
+	}
+
+	static func setShortcut(_ shortcut: Shortcut?, for name: Name, registration: RegistrationBehavior) {
 		if let shortcut {
-			userDefaultsSet(name: name, shortcut: shortcut)
+			userDefaultsSet(name: name, shortcut: shortcut, registration: registration)
 		} else {
 			if name.defaultShortcut != nil {
 				userDefaultsDisable(name: name)
@@ -497,7 +511,7 @@ public enum KeyboardShortcuts {
 		NotificationCenter.default.post(name: .shortcutByNameDidChange, object: nil, userInfo: ["name": name])
 	}
 
-	static func userDefaultsSet(name: Name, shortcut: Shortcut) {
+	static func userDefaultsSet(name: Name, shortcut: Shortcut, registration: RegistrationBehavior) {
 		guard let encoded = try? JSONEncoder().encode(shortcut).toString else {
 			return
 		}
@@ -506,7 +520,9 @@ public enum KeyboardShortcuts {
 			unregister(oldShortcut)
 		}
 
-		register(shortcut)
+		if registration == .register {
+			register(shortcut)
+		}
 		UserDefaults.standard.set(encoded, forKey: userDefaultsKey(for: name))
 		userDefaultsDidChange(name: name)
 	}

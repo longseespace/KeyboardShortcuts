@@ -34,6 +34,16 @@ extension KeyboardShortcuts {
 		private var shortcutsNameChangeObserver: NSObjectProtocol?
 		private var windowDidResignKeyObserver: NSObjectProtocol?
 		private var windowDidBecomeKeyObserver: NSObjectProtocol?
+		public var mode: RecorderMode
+
+		private var registrationBehavior: KeyboardShortcuts.RegistrationBehavior {
+			switch mode {
+			case .global:
+				return .register
+			case .local:
+				return .persistOnly
+			}
+		}
 
 		/**
 		The shortcut name for the recorder.
@@ -83,10 +93,12 @@ extension KeyboardShortcuts {
 		*/
 		public required init(
 			for name: Name,
-			onChange: ((_ shortcut: Shortcut?) -> Void)? = nil
+			onChange: ((_ shortcut: Shortcut?) -> Void)? = nil,
+			mode: RecorderMode = .global
 		) {
 			self.shortcutName = name
 			self.onChange = onChange
+			self.mode = mode
 
 			// Use a default frame that matches our intrinsic size to prevent zero-size issues
 			// when added without constraints (issue #209)
@@ -280,7 +292,7 @@ extension KeyboardShortcuts {
 					return nil
 				}
 
-				if let menuItem = shortcut.takenByMainMenu {
+				if mode == .global, let menuItem = shortcut.takenByMainMenu {
 					// TODO: Find a better way to make it possible to dismiss the alert by pressing "Enter". How can we make the input automatically temporarily lose focus while the alert is open?
 					blur()
 
@@ -307,7 +319,7 @@ extension KeyboardShortcuts {
 					return nil
 				}
 
-				if shortcut.isTakenBySystem {
+				if mode == .global, shortcut.isTakenBySystem {
 					blur()
 
 					let modalResponse = NSAlert.showModal(
@@ -342,7 +354,7 @@ extension KeyboardShortcuts {
 		}
 
 		private func saveShortcut(_ shortcut: Shortcut?) {
-			setShortcut(shortcut, for: shortcutName)
+			KeyboardShortcuts.setShortcut(shortcut, for: shortcutName, registration: registrationBehavior)
 			onChange?(shortcut)
 		}
 	}
